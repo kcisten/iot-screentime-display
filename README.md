@@ -12,7 +12,7 @@ The device utilizes the following components:
 
 * **Microcontroller:** SparkFun ESP8266.
 * **OLED Display:** SSD1306 OLED Display (128x64).
-* **Wiring:** Breadboard, 2 alligator cables, 2 male-to-male jumper cables, and 2 female-to-female jumper cables.
+* **Wiring:** Breadboard, 2 alligator clips, 2 male-to-male jumper cables, and 2 female-to-female jumper cables.
 
 ### Software Libraries
 * **ESP8266:** `ESP8266WiFi`, `BlynkSimpleEsp8266`.
