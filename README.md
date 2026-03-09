@@ -1,4 +1,5 @@
-# IoT Screen Time Display: project overview
+# IoT Screen Time Monitor
+## Project Overview
 
 The purpose of this IoT device is to encourage digital well-being by providing a physical, real-time display of one’s daily screen time. By querying [ActivityWatch’s](https://activitywatch.net/) logs into a visual summary that can be viewed from one’s desk, the system helps bring awareness to the user’s overall screen time habits. Additionally, the application can send customized reminder messages to the user’s preferred Discord server to encourage them to take a break and log off of their computer.
 
