@@ -1,0 +1,7 @@
+# Root .gitignore file
+.env
+secrets.h
+__pycache__/
+*.pyc
+*.bin
+*.elf
