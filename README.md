@@ -36,8 +36,8 @@ The device utilizes the following components:
     * Set **Virtual Pin V10** to data type `Integer` (to store screen time minutes).
 
 ### 2. Configure Credentials
-* **Python Secrets:** Create a `.env` file in the root directory for your sensitive API tokens.
-* **Arduino Secrets:** Create a `secrets.h` file in the `esp8266_firmware/` folder to store your Wi-Fi credentials and Blynk auth tokens.
+* **Python Secrets:** Create a `.env` file in the root directory for your API tokens.
+* **Arduino Secrets:** Create a `secrets.h` file in the `esp8266_firmware/` folder to add your Wi-Fi credentials and Blynk auth tokens.
 
 
 ### 3. Running the Python Script
