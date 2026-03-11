@@ -11,54 +11,80 @@
 #define SCREEN_HEIGHT 64
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
-String app1 = "None", app2 = "None", app3 = "None";
-int avgTime = 0;
+String myApps[3] = {"---", "---", "---"};
+int screenTime = 0;
 bool needsRefresh = true;
+const int LIMIT = 20; 
 
-void drawDashboard() {
-  Serial.println("Updating OLED Screen...");
+// for face animation
+bool frame = false;
+unsigned long lastTick = 0;
+
+void updateScreen() {
   display.clearDisplay();
   display.setTextColor(SSD1306_WHITE);
+  display.setTextSize(2); 
+  display.setCursor(6, 22);
+  
+  if (screenTime >= LIMIT) {
+    if (frame) display.print("T_T"); 
+    else       display.print("u_u");
+  } else {
+    if (frame) display.print("^-^");
+    else       display.print("^u^");
+  }
+
+  // right side: stats
   display.setTextSize(1);
+  display.setCursor(65, 2);
+  display.print(screenTime); display.print(" mins");
+  display.drawFastHLine(65, 12, 58, SSD1306_WHITE);
 
-  display.setCursor(0, 0);
-  display.print("AVG: "); display.print(avgTime); display.println(" min");
-  display.drawFastHLine(0, 10, 128, SSD1306_WHITE);
+  // apps
+  for (int i = 0; i < 3; i++) {
+    int y = 22 + (i * 14); 
+    display.setCursor(65, y);
+    display.print(myApps[i].substring(0, 8));
+    
+    // tiny progress bars
+    int w = 45 - (i * 12); 
+    display.drawFastHLine(65, y + 9, w, SSD1306_WHITE);
+  }
 
-  display.setCursor(0, 20); display.print("1. "); display.println(app1);
-  display.setCursor(0, 35); display.print("2. "); display.println(app2);
-  display.setCursor(0, 50); display.print("3. "); display.println(app3);
-
+  // separator line
+  display.drawFastVLine(60, 0, 64, SSD1306_WHITE);
   display.display(); 
 }
 
 void setup() {
   Serial.begin(115200);
   Wire.begin(2, 14); 
-
+  
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-    Serial.println("OLED NOT FOUND");
+    while(1); 
   }
-
+  
+  display.clearDisplay();
   Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
 }
 
 void loop() {
   Blynk.run();
 
-  static unsigned long lastSync = 0;
-  if (millis() - lastSync > 10000) {
-    Blynk.syncVirtual(V10, V11, V12, V13);
-    lastSync = millis();
+  // change the animation frame every 700ms
+  if (millis() - lastTick > 700) {
+    frame = !frame;
+    lastTick = millis();
+    needsRefresh = true;
   }
 
   if (needsRefresh) {
-    drawDashboard();
+    updateScreen();
     needsRefresh = false;
   }
 }
 
-BLYNK_WRITE(V10) { avgTime = param.asInt(); needsRefresh = true; }
-BLYNK_WRITE(V11) { app1 = param.asStr(); needsRefresh = true; }
-BLYNK_WRITE(V12) { app2 = param.asStr(); needsRefresh = true; }
-BLYNK_WRITE(V13) { app3 = param.asStr(); needsRefresh = true; }
+BLYNK_WRITE(V10) { screenTime = param.asInt(); needsRefresh = true; }
+BLYNK_WRITE(V11) { myApps[0] = param.asStr(); needsRefresh = true; }
+BLYNK_WRITE(V12) { myApps[1] = param.asStr(); needsRefresh = true; }
+BLYNK_WRITE(V13) {
