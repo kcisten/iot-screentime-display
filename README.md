@@ -41,15 +41,19 @@ The device utilizes the following components:
 * **Arduino Secrets:** Create a `secrets.h` file in the `esp8266_firmware/` folder to add your Wi-Fi credentials and Blynk auth tokens.
 
 
-### 3. Running the Python Script
+### 3. Upload Hardware Firmware
+1. Open `screentime-display.ino` in the Arduino IDE.
+2. Ensure the **ESP8266 Board package** is installed in your IDE (via Board Manager).
+3. Install the `Adafruit SSD1306` and `Adafruit GFX` libraries via the Library Manager.
+4. Connect your ESP8266 via USB and upload the sketch.
+
+
+### 4. Running the Python Script
 1. Navigate to the project root directory via your terminal.
 2. Install the required dependencies:
    ```bash
    pip install -r python_script/requirements.txt
 
-### 4. Upload Hardware Firmware
-1. Open `screentime-display.ino` in the Arduino IDE.
-2. Ensure the **ESP8266 Board package** is installed in your IDE (via Board Manager).
-3. Install the `Adafruit SSD1306` and `Adafruit GFX` libraries via the Library Manager.
-4. Connect your ESP8266 via USB and upload the sketch!
+3. Run main.py
+4. The OLED display should now populate with your ActivityWatch data! 
 
