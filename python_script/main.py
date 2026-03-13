@@ -1,22 +1,24 @@
 import os
 import requests
-from dotenv import load_dotenv 
-from datetime import datetime, timedelta, timezone
+from dotenv import load_dotenv
+from datetime import datetime, time, timezone
 
-# config
-AW_URL = "http://localhost:5600"
-WINDOW_BUCKET = "aw-watcher-window_tofu"
-AFK_BUCKET = "aw-watcher-afk_tofu"
-DAYS = 7
 
+AW_URL = os.getenv("AW_URL")
+WINDOW_BUCKET = os.getenv("WINDOW_BUCKET")
+AFK_BUCKET = os.getenv("AFK_BUCKET")
 BLYNK_TOKEN = os.getenv("BLYNK_TOKEN")
-BLYNK_API = "https://blynk.cloud/external/api/update"
-DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
-SCREEN_TIME_LIMIT = 180
+
+BLYNK_UPDATE_URL = "https://blynk.cloud/external/api/update"
+BLYNK_EVENT_URL = "https://blynk.cloud/external/api/logEvent"
+BLYNK_EVENT_NAME = "limit_reached" 
+
+SCREEN_TIME_LIMIT = 20 
 
 def get_stats():
+
     now = datetime.now(timezone.utc)
-    start = (now - timedelta(days=DAYS)).isoformat()
+    start = datetime.combine(now.date(), time.min, tzinfo=timezone.utc).isoformat()
     end = now.isoformat()
 
     query = [
@@ -30,6 +32,7 @@ def get_stats():
                          json={"timeperiods": [f"{start}/{end}"], "query": query}, 
                          timeout=20)
     resp.raise_for_status()
+    
     return resp.json()[0]
 
 def update_blynk(avg_min, apps):
@@ -38,54 +41,52 @@ def update_blynk(avg_min, apps):
         name = app.split('.')[0].strip()
         payloads[f"V{11+i}"] = name[:14]
     
-    # Pad if fewer than 3 apps
+
     while len(payloads) < 4:
         payloads[f"V{11+len(payloads)-1}"] = "---"
 
     for pin, val in payloads.items():
-        requests.get(BLYNK_API, params={"token": BLYNK_TOKEN, pin: val}, timeout=5)
-        print(f"Pushed to {pin}: {val}")
+        try:
+            requests.get(BLYNK_UPDATE_URL, params={"token": BLYNK_TOKEN, pin: val}, timeout=5)
+            print(f"Pushed to {pin}: {val}")
+        except Exception as e:
+            print(f"Failed to push to {pin}: {e}")
 
-def send_discord_alert(minutes):
-    gif_url = "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExYmx3eDBzOXJpZW5pYm9tamdhM2Z2cDJwYmxsMXM5MHFvMXJoNHNybyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/q5jnZ0d18LEtOgAICr/giphy.gif"
-    
-    payload = {
-        "content": f"⚠️ **Screen Time Alert!** You've hit {minutes} minutes today.",
-        "embeds": [{
-            "title": "time for a break!",
-            "description": "pls go outside and touch Grass",
-            "image": {"url": gif_url}
-        }]
-    }
-    
+def trigger_blynk_event():
+
+    print(f"Screen time limit reached! Telling Blynk to trigger the '{BLYNK_EVENT_NAME}' event...")
     try:
-        response = requests.post(DISCORD_WEBHOOK_URL, json=payload, timeout=5)
+        response = requests.get(BLYNK_EVENT_URL, params={
+            "token": BLYNK_TOKEN, 
+            "code": BLYNK_EVENT_NAME  
+        }, timeout=5)
         response.raise_for_status()
-        print("Discord alert with GIF sent successfully.")
+        print("Blynk Event triggered successfully! Blynk should now forward the Webhook to Discord.")
     except Exception as e:
-        print(f"Failed to send Discord alert: {e}")
+        print(f"Failed to trigger Blynk Event: {e}")
 
 def main():
     data = get_stats()
-    
     apps = {}
-    total = 0
+    total_seconds = 0
+    
     for entry in data:
         app = entry.get("data", {}).get("app", "unknown")
         dur = float(entry.get("duration", 0))
         apps[app] = apps.get(app, 0) + dur
-        total += dur
+        total_seconds += dur
 
-    avg_min = int(round((total / 60) / DAYS))
+    today_minutes = int(round(total_seconds / 60))
 
-    if avg_min >= SCREEN_TIME_LIMIT:
-        send_discord_alert(avg_min)
+    if today_minutes >= SCREEN_TIME_LIMIT:
+        trigger_blynk_event()
     
     sorted_apps = sorted(apps.items(), key=lambda x: x[1], reverse=True)
     top_apps = [name for name, _ in sorted_apps]
 
-    print(f"Avg: {avg_min} min/day | Top Used Apps: {top_apps[:3]}")
-    update_blynk(avg_min, top_apps)
+    print(f"Today's Total: {today_minutes} min | Top Used Apps: {top_apps[:3]}")
+    
+    update_blynk(today_minutes, top_apps)
 
 if __name__ == "__main__":
     main()
